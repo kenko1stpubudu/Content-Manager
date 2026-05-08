@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenko 1st — Content Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--panel:#1a1d27;--card:#22263a;--border:#2e3350;
+  --accent:#00e5a0;--accent2:#ff6b6b;--accent3:#ffd93d;--accent4:#6c8fff;
+  --text:#e8eaf0;--muted:#7a7f9a;--green:#128c7e;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'Space Mono',monospace}
+
+/* ── TOP BAR ── */
+.topbar{
+  background:var(--panel);border-bottom:1px solid var(--border);
+  padding:14px 24px;display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:100;
+}
+.topbar-logo{font-family:'Space Mono',monospace;font-size:14px;color:var(--accent);letter-spacing:2px;flex-shrink:0}
+.topbar-title{font-size:12px;color:var(--muted);flex:1}
+.topbar-actions{display:flex;gap:10px}
+
+.btn{
+  padding:8px 18px;border-radius:8px;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+  transition:all 0.18s;display:flex;align-items:center;gap:7px;
+}
+.btn-primary{background:var(--accent);color:#0f1117}
+.btn-primary:hover{background:#00ffc4;transform:translateY(-1px)}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(255,107,107,0.15);color:var(--accent2);border:1px solid rgba(255,107,107,0.3)}
+.btn-danger:hover{background:rgba(255,107,107,0.25)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-warn{background:rgba(255,217,61,0.15);color:var(--accent3);border:1px solid rgba(255,217,61,0.3)}
+.btn-warn:hover{background:rgba(255,217,61,0.25)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 57px)}
+.sidebar{
+  width:220px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--border);padding:20px 0;
+  position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;
+}
+.main{flex:1;padding:28px;overflow-x:hidden;max-width:900px}
+
+/* ── SIDEBAR NAV ── */
+.nav-section{padding:0 16px 8px;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:16px}
+.nav-item{
+  padding:10px 20px;cursor:pointer;font-size:13.5px;font-weight:500;
+  display:flex;align-items:center;gap:10px;transition:all 0.15s;
+  border-left:3px solid transparent;
+}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--accent)}
+.nav-item.active{background:rgba(0,229,160,0.08);color:var(--accent);border-left-color:var(--accent)}
+.nav-badge{background:rgba(0,229,160,0.15);color:var(--accent);padding:1px 7px;border-radius:20px;font-size:10px;font-family:'Space Mono',monospace;margin-left:auto}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.section-title{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.section-title span{color:var(--accent)}
+
+/* ── PRODUCT CARDS ── */
+.product-list{display:flex;flex-direction:column;gap:10px}
+.product-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;cursor:pointer;transition:all 0.18s;
+  display:flex;align-items:center;gap:14px;
+}
+.product-card:hover{border-color:var(--accent4);transform:translateX(3px)}
+.product-card.selected{border-color:var(--accent);background:rgba(0,229,160,0.06)}
+.product-emoji{font-size:24px;width:40px;text-align:center;flex-shrink:0}
+.product-info{flex:1}
+.product-name{font-weight:600;font-size:14px}
+.product-price{font-size:12px;color:var(--muted);margin-top:2px}
+.product-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* ── EDIT PANEL ── */
+.edit-panel{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:24px;margin-top:20px;display:none;
+}
+.edit-panel.show{display:block}
+.edit-panel-title{font-size:16px;font-weight:700;margin-bottom:18px;color:var(--accent);font-family:'Space Mono',monospace}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:span 2}
+label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+input,textarea,select{
+  background:var(--panel);border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;
+  transition:border-color 0.15s;outline:none;width:100%;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+.lang-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.lang-tab{
+  padding:5px 14px;border-radius:20px;border:1px solid var(--border);
+  cursor:pointer;font-size:12px;font-weight:600;transition:all 0.15s;background:transparent;color:var(--muted);
+}
+.lang-tab.active{background:var(--accent);color:#0f1117;border-color:var(--accent)}
+
+/* ── DEALS PANEL ── */
+.deals-grid{display:flex;flex-direction:column;gap:12px}
+.deal-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;
+}
+.deal-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.deal-card-header input{flex:1}
+.deal-price-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+.tags-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.tag-check{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12.5px;font-weight:600}
+.tag-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent)}
+
+/* ── ADD PRODUCT FORM ── */
+.add-form{
+  background:var(--card);border:2px dashed var(--border);border-radius:16px;
+  padding:24px;margin-top:16px;display:none;
+}
+.add-form.show{display:block;border-color:var(--accent4)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--accent);color:#0f1117;
+  padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;
+  opacity:0;transform:translateY(20px);transition:all 0.3s;z-index:9999;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:18px 0}
+
+/* ── CHIP ── */
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
+}
+.chip.hot{background:rgba(255,107,107,0.15);color:#ff6b6b}
+.chip.new{background:rgba(0,229,160,0.12);color:#00e5a0}
+.chip.limit{background:rgba(255,217,61,0.12);color:#ffd93d}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.status-bar{
+  background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);
+  border-radius:10px;padding:12px 16px;margin-bottom:20px;
+  font-size:13px;color:var(--accent);display:flex;align-items:center;gap:8px;
+}
+.modified-dot{width:8px;height:8px;border-radius:50%;background:var(--accent3);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">⬡ KENKO MGR</div>
+  <div class="topbar-title">Kenko 1st Content Management Tool</div>
+  <div class="topbar-actions">
+    <button class="btn btn-secondary btn-sm" onclick="loadOriginalFile()">📂 HTML Load කරන්න</button>
+    <button class="btn btn-primary btn-sm" onclick="downloadHTML()" id="download-btn" disabled>⬇ HTML Download</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section">Categories</div>
+    <div class="nav-item active" onclick="showSection('fruits')" id="nav-fruits">🍇 Dried Fruits <span class="nav-badge" id="badge-fruits">0</span></div>
+    <div class="nav-item" onclick="showSection('nuts')" id="nav-nuts">🥜 Nuts & Seeds <span class="nav-badge" id="badge-nuts">0</span></div>
+    <div class="nav-item" onclick="showSection('spice')" id="nav-spice">🌶️ Spice & Grain <span class="nav-badge" id="badge-spice">0</span></div>
+    <div class="nav-item" onclick="showSection('herbs')" id="nav-herbs">🌱 Herbs <span class="nav-badge" id="badge-herbs">0</span></div>
+    <div class="nav-item" onclick="showSection('tea')" id="nav-tea">🍵 Herbal Tea <span class="nav-badge" id="badge-tea">0</span></div>
+    <div class="nav-section" style="margin-top:16px">Promotions</div>
+    <div class="nav-item" onclick="showSection('deals')" id="nav-deals">🔥 Special Deals</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content">
+    <!-- File upload area shown first -->
+    <div id="upload-area" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center">
+      <div style="font-size:64px;margin-bottom:20px">🌿</div>
+      <h2 style="font-size:24px;margin-bottom:10px">Kenko 1st Content Manager</h2>
+      <p style="color:var(--muted);font-size:14px;max-width:400px;margin-bottom:28px;line-height:1.7">
+        ඔබේ <code style="background:var(--card);padding:2px 8px;border-radius:4px">dami_app.html</code> file එක load කරන්න. Products, prices සහ promotions edit කරලා updated HTML file download කරගන්න.
+      </p>
+      <label for="file-input" class="btn btn-primary" style="font-size:15px;padding:12px 28px;cursor:pointer">
+        📂 HTML File Select කරන්න
+      </label>
+      <input type="file" id="file-input" accept=".html" style="display:none" onchange="handleFileUpload(event)">
+      <p style="color:var(--muted);font-size:12px;margin-top:16px">dami_app.html · kenko1st</p>
+    </div>
+
+    <!-- Sections (hidden until file loaded) -->
+    <div id="sections-area" style="display:none">
+      <div id="section-fruits" class="section"></div>
+      <div id="section-nuts" class="section" style="display:none"></div>
+      <div id="section-spice" class="section" style="display:none"></div>
+      <div id="section-herbs" class="section" style="display:none"></div>
+      <div id="section-tea" class="section" style="display:none"></div>
+      <div id="section-deals" class="section" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ <span id="toast-msg">Saved!</span></div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let originalHTML = '';
+let htmlData = {
+  fruitProducts: {},
+  fruitPrices: {},
+  nutProducts: {},
+  nutPrices: {},
+  spiceProducts: {},
+  spicePrices: {},
+  herbsProducts: {},
+  herbsPrices: {},
+  teaProducts: {},
+  teaPrices: {},
+  dealsData: []
+};
+let isLoaded = false;
+let currentSection = 'fruits';
+let editingItem = null;
+let editLang = 'en';
+// In-memory buffer for all 4 languages while editing — prevents data loss on tab switch
+let editBuffer = {};  // { si:{name,benefits,usage,precautions}, en:{...}, ta:{...}, jp:{...} }
+
+// ═══════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════
+function loadOriginalFile() {
+  document.getElementById('file-input').click();
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    originalHTML = e.target.result;
+    parseHTML(originalHTML);
+    showToast('✅ File loaded: ' + file.name);
+    document.getElementById('upload-area').style.display = 'none';
+    document.getElementById('sections-area').style.display = 'block';
+    document.getElementById('download-btn').disabled = false;
+    isLoaded = true;
+    showSection('fruits');
+    updateBadges();
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════
+// HTML PARSER — extract JS data objects
+// ═══════════════════════════════════════
+function parseHTML(html) {
+  // Extract each data object by finding them in the script tag
+  const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/g);
+  if (!scriptMatch) return;
+  const script = scriptMatch[scriptMatch.length - 2] || scriptMatch[0]; // main script block
+
+  // Use Function to safely eval the data objects from the HTML
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const iwin = iframe.contentWindow;
+
+    // Inject only the data-object portion of the script
+    const dataScript = iframe.contentDocument.createElement('script');
+    // Extract just the variable declarations
+    const vars = ['fruitProducts','fruitPrices','nutProducts','nutPrices',
+                  'spiceProducts','spicePrices','herbsProducts','herbsPrices',
+                  'teaProducts','teaPrices','dealsData','dealsMeta'];
+    let code = '';
+    vars.forEach(v => {
+      const re = new RegExp(`(?:const|let|var)\\s+${v}\\s*=\\s*`, 'g');
+      if (re.test(html)) {
+        // find start
+        const startRe = new RegExp(`(?:const|let|var)\\s+${v}\\s*=\\s*`);
+        const startM = html.match(startRe);
+        if (startM) {
+          const startIdx = html.indexOf(startM[0]);
+          const assignIdx = startIdx + startM[0].length;
+          const snippet = html.slice(assignIdx, assignIdx + 200000);
+          // find matching end (balance braces/brackets)
+          const firstChar = snippet.trim()[0];
+          const closeChar = firstChar === '{' ? '}' : ']';
+          let depth = 0;
+          let inStr = false;
+          let strChar = '';
+          let endIdx = 0;
+          for (let i = 0; i < snippet.length; i++) {
+            const c = snippet[i];
+            if (inStr) {
+              if (c === strChar && snippet[i-1] !== '\\') inStr = false;
+            } else {
+              if (c === '"' || c === "'" || c === '`') { inStr = true; strChar = c; }
+              else if (c === '{' || c === '[') depth++;
+              else if (c === '}' || c === ']') { depth--; if (depth === 0) { endIdx = i; break; } }
+            }
+          }
+          code += `var ${v} = ${snippet.slice(0, endIdx+1)};\n`;
+        }
+      }
+    });
+    dataScript.textContent = code;
+    iframe.contentDocument.head.appendChild(dataScript);
+
+    vars.forEach(v => {
+      if (iwin[v] !== undefined) {
+        htmlData[v] = JSON.parse(JSON.stringify(iwin[v]));
+      }
+    });
+    document.body.removeChild(iframe);
+  } catch(e) {
+    console.error('Parse error:', e);
+    showToast('⚠️ Parse error — manual edit mode');
+  }
+}
+
+// ═══════════════════════════════════════
+// SECTION RENDER
+// ═══════════════════════════════════════
+const SECTIONS = {
+  fruits: { label:'Dried Fruits', products:'fruitProducts', prices:'fruitPrices', icon:'🍇', color:'#9b1f4a' },
+  nuts:   { label:'Nuts & Seeds', products:'nutProducts',   prices:'nutPrices',   icon:'🥜', color:'#7c4f1a' },
+  spice:  { label:'Spice & Grain', products:'spiceProducts', prices:'spicePrices', icon:'🌶️', color:'#d35400' },
+  herbs:  { label:'Ayurvedic Herbs', products:'herbsProducts', prices:'herbsPrices', icon:'🌱', color:'#1a7a5e' },
+  tea:    { label:'Herbal Tea', products:'teaProducts', prices:'teaPrices', icon:'🍵', color:'#27ae60' },
+};
+
+function showSection(sec) {
+  currentSection = sec;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + sec)?.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  document.getElementById('section-' + sec).style.display = 'block';
+
+  if (sec === 'deals') renderDealsSection();
+  else renderProductSection(sec);
+}
+
+function updateBadges() {
+  Object.keys(SECTIONS).forEach(sec => {
+    const s = SECTIONS[sec];
+    const count = Object.keys(htmlData[s.products] || {}).length;
+    const badge = document.getElementById('badge-' + sec);
+    if (badge) badge.textContent = count;
+  });
+}
+
+function renderProductSection(sec) {
+  const s = SECTIONS[sec];
+  const prods = htmlData[s.products] || {};
+  const prices = htmlData[s.prices] || {};
+  const container = document.getElementById('section-' + sec);
+
+  let html = `
+    <div id="status-bar-${sec}" class="status-bar" style="display:none">
+      <div class="modified-dot"></div> Unsaved changes — Download button click කරලා HTML download කරගන්න
+    </div>
+    <div class="section-header">
+      <div class="section-title">${s.icon} <span>${s.label}</span> Products</div>
+      <button class="btn btn-secondary btn-sm" onclick="toggleAddForm('${sec}')">+ නව Product</button>
+    </div>
+    <div class="product-list" id="prodlist-${sec}">
+  `;
+
+  Object.keys(prods).forEach(key => {
+    const p = prods[key];
+    const pr = prices[key];
+    const emoji = extractEmoji(p.en || p.si || '');
+    const name = (p.en || p.si || key).replace(/^[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\s]*/u, '').trim();
+    html += `
+      <div class="product-card" id="card-${sec}-${key}">
+        <div class="product-emoji">${emoji || s.icon}</div>
+        <div class="product-info">
+          <div class="product-name">${name || key}</div>
+          <div class="product-price">${pr ? pr.price + ' · ' + pr.capacity : 'Price not set'}</div>
+        </div>
+        <div class="product-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editProduct('${sec}','${key}')">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${sec}','${key}')">🗑</button>
+        </div>
+      </div>
+    `;
+  });
+
+  if (Object.keys(prods).length === 0) {
+    html += `<div class="empty"><div class="empty-icon">${s.icon}</div><p>Products නෑ. "නව Product" button click කරන්න.</p></div>`;
+  }
+
+  html += `</div>`;
+
+  // Add form
+  html += `
+    <div class="add-form" id="addform-${sec}">
+      <div class="edit-panel-title">+ නව Product Add කරන්න</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Product Key (English, no spaces)</label>
+          <input type="text" id="new-key-${sec}" placeholder="e.g. Mango" />
+        </div>
+        <div class="form-group">
+          <label>Price</label>
+          <input type="text" id="new-price-${sec}" placeholder="Rs. 780" />
+        </div>
+        <div class="form-group">
+          <label>Capacity</label>
+          <input type="text" id="new-cap-${sec}" placeholder="100g" />
+        </div>
+        <div class="form-group">
+          <label>Emoji</label>
+          <input type="text" id="new-emoji-${sec}" placeholder="🥭" maxlength="4" />
+        </div>
+        <div class="form-group full">
+          <label>Name (Sinhala)</label>
+          <input type="text" id="new-si-${sec}" placeholder="🥭 අඹ" />
+        </div>
+        <div class="form-group full">
+          <label>Name (English)</label>
+          <input type="text" id="new-en-${sec}" placeholder="🥭 Mango" />
+        </div>
+        <div class="form-group full">
+          <label>Name (Tamil)</label>
+          <input type="text" id="new-ta-${sec}" placeholder="🥭 மாம்பழம்" />
+        </div>
+        <div class="form-group full">
+          <label>Name (Japanese)</label>
+          <input type="text" id="new-jp-${sec}" placeholder="🥭 マンゴー" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-primary" onclick="addProduct('${sec}')">✓ Add කරන්න</button>
+        <button class="btn btn-secondary" onclick="toggleAddForm('${sec}')">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  // Edit panel
+  html += `<div class="edit-panel" id="editpanel-${sec}"></div>`;
+
+  container.innerHTML = html;
+}
+
+function extractEmoji(str) {
+  const m = str.match(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}]/u);
+  return m ? m[0] : '';
+}
+
+// ═══════════════════════════════════════
+// EDIT PRODUCT
+// ═══════════════════════════════════════
+function editProduct(sec, key) {
+  const s = SECTIONS[sec];
+  const prods = htmlData[s.products];
+  const prices = htmlData[s.prices];
+  const p = prods[key];
+  const pr = prices[key] || { price:'', capacity:'' };
+
+  editingItem = { sec, key };
+  editLang = 'si';
+
+  // Init buffer from existing data - all 4 langs loaded into memory
+  editBuffer = {};
+  ['si','en','ta','jp'].forEach(l => {
+    editBuffer[l] = {
+      name:        p[l] || '',
+      benefits:    p.data?.benefits?.[l]   || '',
+      usage:       p.data?.usage?.[l]       || '',
+      precautions: p.data?.precautions?.[l] || ''
+    };
+  });
+
+  const langs = ['si','en','ta','jp'];
+  const langLabels = { si:'සිංහල', en:'English', ta:'தமிழ்', jp:'日本語' };
+
+  let langTabsHTML = langs.map(l =>
+    `<button class="lang-tab ${l===editLang?'active':''}" onclick="switchEditLang('${sec}','${key}','${l}')" id="etab-${l}">${langLabels[l]}</button>`
+  ).join('');
+
+  const panel = document.getElementById('editpanel-' + sec);
+  panel.className = 'edit-panel show';
+
+  panel.innerHTML = `
+    <div class="edit-panel-title">&#9998; Editing: ${key}</div>
+    <div style="background:rgba(108,143,255,0.08);border:1px solid rgba(108,143,255,0.25);border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:12.5px;color:#6c8fff;">
+      &#128161; Tab switch කරද්දී data auto-save වෙනවා. <b>Save</b> click කළාම සියළු භාශා 4ම HTML එකට save වෙනවා.
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Price</label>
+        <input type="text" id="edit-price-${sec}" value="${escHTML(pr.price)}" oninput="markModified('${sec}')" />
+      </div>
+      <div class="form-group">
+        <label>Capacity</label>
+        <input type="text" id="edit-cap-${sec}" value="${escHTML(pr.capacity)}" oninput="markModified('${sec}')" />
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">CONTENT &#8212; Language</div>
+    <div class="lang-tabs" id="edit-lang-tabs">${langTabsHTML}</div>
+    <div id="edit-lang-content-${sec}"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-primary" onclick="saveProduct('${sec}','${key}')">&#128190; සියළු භාශා 4 Save</button>
+      <button class="btn btn-secondary" onclick="closeEditPanel('${sec}')">Cancel</button>
+    </div>
+  `;
+
+  renderLangContent(sec, key, editLang);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function switchEditLang(sec, key, lang) {
+  // ── 1. Flush current tab's DOM values into editBuffer ──────────
+  if (editLang && editBuffer[editLang]) {
+    const cur = editLang;
+    const nameEl  = document.getElementById('ename-' + cur);
+    const benEl   = document.getElementById('ebenefits-' + cur);
+    const useEl   = document.getElementById('eusage-' + cur);
+    const preEl   = document.getElementById('eprecautions-' + cur);
+    if (nameEl) editBuffer[cur].name        = nameEl.value;
+    if (benEl)  editBuffer[cur].benefits    = benEl.value;
+    if (useEl)  editBuffer[cur].usage       = useEl.value;
+    if (preEl)  editBuffer[cur].precautions = preEl.value;
+  }
+  // ── 2. Switch tab ──────────────────────────────────────────────
+  editLang = lang;
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('etab-' + lang)?.classList.add('active');
+  // ── 3. Render new tab from buffer ─────────────────────────────
+  renderLangContent(sec, key, lang);
+}
+
+function renderLangContent(sec, key, lang) {
+  const cont = document.getElementById('edit-lang-content-' + sec);
+  if (!cont) return;
+
+  // Read from buffer (not htmlData directly)
+  const buf = editBuffer[lang] || { name:'', benefits:'', usage:'', precautions:'' };
+
+  cont.innerHTML = `
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Button Name (${lang})</label>
+        <input type="text" id="ename-${lang}" value="${escHTML(buf.name)}" oninput="markModified('${sec}')" />
+      </div>
+      <div class="form-group full">
+        <label>Benefits (HTML allowed)</label>
+        <textarea id="ebenefits-${lang}" oninput="markModified('${sec}')">${escHTML(buf.benefits)}</textarea>
+      </div>
+      <div class="form-group full">
+        <label>Usage (HTML allowed)</label>
+        <textarea id="eusage-${lang}" oninput="markModified('${sec}')">${escHTML(buf.usage)}</textarea>
+      </div>
+      <div class="form-group full">
+        <label>Precautions (HTML allowed)</label>
+        <textarea id="eprecautions-${lang}" oninput="markModified('${sec}')">${escHTML(buf.precautions)}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+function saveProduct(sec, key) {
+  const s = SECTIONS[sec];
+  const prods = htmlData[s.products];
+  const prices = htmlData[s.prices];
+  const p = prods[key];
+
+  // ── 1. Flush the currently-visible tab into buffer ─────────────
+  if (editLang && editBuffer[editLang]) {
+    const cur = editLang;
+    const nameEl  = document.getElementById('ename-' + cur);
+    const benEl   = document.getElementById('ebenefits-' + cur);
+    const useEl   = document.getElementById('eusage-' + cur);
+    const preEl   = document.getElementById('eprecautions-' + cur);
+    if (nameEl) editBuffer[cur].name        = nameEl.value;
+    if (benEl)  editBuffer[cur].benefits    = benEl.value;
+    if (useEl)  editBuffer[cur].usage       = useEl.value;
+    if (preEl)  editBuffer[cur].precautions = preEl.value;
+  }
+
+  // ── 2. Save price / capacity ───────────────────────────────────
+  prices[key] = {
+    price:    document.getElementById('edit-price-' + sec)?.value || '',
+    capacity: document.getElementById('edit-cap-'   + sec)?.value || ''
+  };
+
+  // ── 3. Write all 4 langs from buffer → htmlData ────────────────
+  if (!p.data) p.data = {};
+  ['si','en','ta','jp'].forEach(l => {
+    const buf = editBuffer[l] || {};
+    p[l] = buf.name || p[l] || '';
+    ['benefits','usage','precautions'].forEach(field => {
+      if (!p.data[field]) p.data[field] = {};
+      p.data[field][l] = buf[field] !== undefined ? buf[field] : (p.data[field][l] || '');
+    });
+  });
+
+  renderProductSection(sec);
+  showToast('&#128190; ' + key + ' — සියළු භාශා 4 saved!');
+  markModified(sec);
+}
+
+function closeEditPanel(sec) {
+  const panel = document.getElementById('editpanel-' + sec);
+  if (panel) { panel.className = 'edit-panel'; panel.innerHTML = ''; }
+}
+
+// ═══════════════════════════════════════
+// ADD PRODUCT
+// ═══════════════════════════════════════
+function toggleAddForm(sec) {
+  const form = document.getElementById('addform-' + sec);
+  form.classList.toggle('show');
+}
+
+function addProduct(sec) {
+  const key = document.getElementById('new-key-' + sec)?.value.trim();
+  if (!key) { showToast('⚠️ Product key ඇතුල් කරන්න!'); return; }
+
+  const s = SECTIONS[sec];
+  const emoji = document.getElementById('new-emoji-' + sec)?.value || '📦';
+  const siName = document.getElementById('new-si-' + sec)?.value || emoji + ' ' + key;
+  const enName = document.getElementById('new-en-' + sec)?.value || emoji + ' ' + key;
+  const taName = document.getElementById('new-ta-' + sec)?.value || emoji + ' ' + key;
+  const jpName = document.getElementById('new-jp-' + sec)?.value || emoji + ' ' + key;
+  const price = document.getElementById('new-price-' + sec)?.value || '';
+  const cap = document.getElementById('new-cap-' + sec)?.value || '';
+
+  htmlData[s.products][key] = {
+    si: siName, en: enName, ta: taName, jp: jpName,
+    data: {
+      benefits:     { si:'', en:'', ta:'', jp:'' },
+      usage:        { si:'', en:'', ta:'', jp:'' },
+      precautions:  { si:'', en:'', ta:'', jp:'' }
+    }
+  };
+  htmlData[s.prices][key] = { price, capacity: cap };
+
+  renderProductSection(sec);
+  markModified(sec);
+  showToast('✅ ' + key + ' added!');
+  updateBadges();
+  // Auto-open edit panel for new item
+  setTimeout(() => editProduct(sec, key), 100);
+}
+
+// ═══════════════════════════════════════
+// DELETE PRODUCT
+// ═══════════════════════════════════════
+function deleteProduct(sec, key) {
+  if (!confirm(`"${key}" delete කිරීමට ඔබ සහතිකද?`)) return;
+  const s = SECTIONS[sec];
+  delete htmlData[s.products][key];
+  delete htmlData[s.prices][key];
+  renderProductSection(sec);
+  markModified(sec);
+  updateBadges();
+  showToast('🗑 ' + key + ' deleted');
+}
+
+// ═══════════════════════════════════════
+// DEALS SECTION
+// ═══════════════════════════════════════
+function renderDealsSection() {
+  const deals = htmlData.dealsData || [];
+  const container = document.getElementById('section-deals');
+
+  let html = `
+    <div class="section-header">
+      <div class="section-title">🔥 <span>Special Deals</span></div>
+      <button class="btn btn-secondary btn-sm" onclick="addDeal()">+ Deal Add කරන්න</button>
+    </div>
+    <div id="deals-status" class="status-bar" style="display:none">
+      <div class="modified-dot"></div> Unsaved changes
+    </div>
+    <div class="deals-grid" id="deals-list">
+  `;
+
+  deals.forEach((d, i) => {
+    html += renderDealCard(d, i);
+  });
+
+  if (deals.length === 0) {
+    html += `<div class="empty"><div class="empty-icon">🔔</div><p>Deals නෑ. "Deal Add කරන්න" click කරන්න.</p></div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function renderDealCard(d, i) {
+  const langs = ['si','en','ta','jp'];
+  const curLang = 'en';
+  const tagList = ['hot','new','limit'];
+  const tagLabels = { hot:'🔥 Hot', new:'✨ New', limit:'⏳ Limited' };
+  const tags = d.tags || [];
+
+  let tagsHtml = tagList.map(t =>
+    `<label class="tag-check"><input type="checkbox" ${tags.includes(t)?'checked':''} onchange="updateDealTag(${i},'${t}',this.checked)"> ${tagLabels[t]}</label>`
+  ).join('');
+
+  let langNames = langs.map(l =>
+    `<div class="form-group"><label>${l.toUpperCase()}</label><input type="text" value="${escHTML(d.name?.[l]||'')}" oninput="updateDeal(${i},'name','${l}',this.value)" /></div>`
+  ).join('');
+
+  let langDescs = langs.map(l =>
+    `<div class="form-group full"><label>Description (${l.toUpperCase()})</label><textarea oninput="updateDeal(${i},'desc','${l}',this.value)">${escHTML(d.desc?.[l]||'')}</textarea></div>`
+  ).join('');
+
+  return `
+    <div class="deal-card" id="deal-card-${i}">
+      <div class="deal-card-header">
+        <input type="text" placeholder="Icon Emoji" value="${escHTML(d.icon||'')}" style="max-width:70px;text-align:center;font-size:22px" oninput="updateDeal(${i},'icon',null,this.value)" />
+        <input type="text" placeholder="Deal name (English)" value="${escHTML(d.name?.en||'')}" style="flex:1" oninput="updateDeal(${i},'name','en',this.value)" />
+        <button class="btn btn-danger btn-sm" onclick="deleteDeal(${i})">🗑</button>
+      </div>
+      <div class="form-grid" style="margin-bottom:12px">
+        ${langNames}
+      </div>
+      <div class="form-grid">
+        ${langDescs}
+      </div>
+      <div class="deal-price-row" style="margin-top:12px">
+        <div class="form-group">
+          <label>Old Price</label>
+          <input type="text" value="${escHTML(d.oldPrice||'')}" placeholder="Rs. 1100" oninput="updateDeal(${i},'oldPrice',null,this.value)" />
+        </div>
+        <div class="form-group">
+          <label>New Price</label>
+          <input type="text" value="${escHTML(d.newPrice||'')}" placeholder="Rs. 980" oninput="updateDeal(${i},'newPrice',null,this.value)" />
+        </div>
+        <div class="form-group">
+          <label>Discount Label</label>
+          <input type="text" value="${escHTML(d.discount||'')}" placeholder="11% OFF" oninput="updateDeal(${i},'discount',null,this.value)" />
+        </div>
+        <div class="form-group">
+          <label>Capacity</label>
+          <input type="text" value="${escHTML(d.capacity||'')}" placeholder="100g" oninput="updateDeal(${i},'capacity',null,this.value)" />
+        </div>
+      </div>
+      <div class="tags-row">
+        <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px">Tags:</span>
+        ${tagsHtml}
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)">#${i+1}</span>
+      </div>
+    </div>
+  `;
+}
+
+function updateDeal(i, field, lang, value) {
+  if (!htmlData.dealsData[i]) return;
+  if (lang) {
+    if (!htmlData.dealsData[i][field]) htmlData.dealsData[i][field] = {};
+    htmlData.dealsData[i][field][lang] = value;
+  } else {
+    htmlData.dealsData[i][field] = value;
+  }
+  // Update badge count
+  document.getElementById('deal-badge-count') && (document.getElementById('deal-badge-count').textContent = htmlData.dealsData.length);
+  markDealsModified();
+}
+
+function updateDealTag(i, tag, checked) {
+  if (!htmlData.dealsData[i]) return;
+  if (!htmlData.dealsData[i].tags) htmlData.dealsData[i].tags = [];
+  const tags = htmlData.dealsData[i].tags;
+  if (checked && !tags.includes(tag)) tags.push(tag);
+  if (!checked) htmlData.dealsData[i].tags = tags.filter(t => t !== tag);
+  markDealsModified();
+}
+
+function addDeal() {
+  htmlData.dealsData.push({
+    icon: '🆕',
+    name: { si:'', en:'New Deal', ta:'', jp:'' },
+    desc: { si:'', en:'', ta:'', jp:'' },
+    oldPrice: '', newPrice: '', discount: '', tags: [], capacity: '',
+    tagLabels: {
+      hot:  { si:'🔥 ජනප්‍රිය', en:'🔥 Hot Pick', ta:'🔥 பிரபலம்', jp:'🔥 人気' },
+      new:  { si:'✨ නව', en:'✨ New', ta:'✨ புதியது', jp:'✨ 新着' },
+      limit:{ si:'⏳ සීමිතයි', en:'⏳ Limited', ta:'⏳ வரையறை', jp:'⏳ 限定' }
+    }
+  });
+  renderDealsSection();
+  markDealsModified();
+  showToast('✅ New deal added!');
+}
+
+function deleteDeal(i) {
+  if (!confirm('This deal delete කිරීමට ඔබ සහතිකද?')) return;
+  htmlData.dealsData.splice(i, 1);
+  renderDealsSection();
+  markDealsModified();
+  showToast('🗑 Deal deleted');
+}
+
+function markDealsModified() {
+  const bar = document.getElementById('deals-status');
+  if (bar) bar.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════
+// MODIFIED STATE
+// ═══════════════════════════════════════
+function markModified(sec) {
+  const bar = document.getElementById('status-bar-' + sec);
+  if (bar) bar.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════
+// HTML GENERATION & DOWNLOAD
+// ═══════════════════════════════════════
+function downloadHTML() {
+  if (!isLoaded) { showToast('⚠️ File load කරන්න!'); return; }
+  const updated = rebuildHTML();
+  const blob = new Blob([updated], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dami_app_updated.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇️ HTML downloaded!');
+}
+
+function rebuildHTML() {
+  let html = originalHTML;
+
+  // Replace each data object in the script
+  const replacements = [
+    { varName: 'fruitProducts',  data: htmlData.fruitProducts },
+    { varName: 'fruitPrices',    data: htmlData.fruitPrices },
+    { varName: 'nutProducts',    data: htmlData.nutProducts },
+    { varName: 'nutPrices',      data: htmlData.nutPrices },
+    { varName: 'spiceProducts',  data: htmlData.spiceProducts },
+    { varName: 'spicePrices',    data: htmlData.spicePrices },
+    { varName: 'herbsProducts',  data: htmlData.herbsProducts },
+    { varName: 'herbsPrices',    data: htmlData.herbsPrices },
+    { varName: 'teaProducts',    data: htmlData.teaProducts },
+    { varName: 'teaPrices',      data: htmlData.teaPrices },
+    { varName: 'dealsData',      data: htmlData.dealsData },
+  ];
+
+  replacements.forEach(({ varName, data }) => {
+    const re = new RegExp(`((?:const|let|var)\\s+${varName}\\s*=\\s*)([\\s\\S]*?)(;\\s*\\n)`, 'm');
+    const m = html.match(re);
+    if (m) {
+      // find the full extent of the current value
+      const startIdx = html.indexOf(m[0]);
+      const assignIdx = startIdx + m[1].length;
+      const snippet = html.slice(assignIdx);
+      const firstChar = snippet.trim()[0];
+      const closeChar = firstChar === '{' ? '}' : ']';
+      let depth = 0, inStr = false, strChar = '', endIdx = 0;
+      for (let i = 0; i < snippet.length; i++) {
+        const c = snippet[i];
+        if (inStr) { if (c === strChar && snippet[i-1] !== '\\') inStr = false; }
+        else {
+          if (c === '"' || c === "'" || c === '`') { inStr = true; strChar = c; }
+          else if (c === '{' || c === '[') depth++;
+          else if (c === '}' || c === ']') { depth--; if (depth === 0) { endIdx = i; break; } }
+        }
+      }
+      const oldValue = snippet.slice(0, endIdx + 1);
+      const newValue = JSON.stringify(data, null, 4);
+      html = html.slice(0, assignIdx) + newValue + html.slice(assignIdx + endIdx + 1);
+    }
+  });
+
+  return html;
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function escHTML(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
